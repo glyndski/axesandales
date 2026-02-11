@@ -10,17 +10,8 @@ import { ClubLayoutView } from './components/ClubLayoutView';
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as firebaseService from './services/firebaseService';
-import {
-getBookings, deleteBooking, saveBooking,
-getTables, getTerrainBoxes, initInventory, saveTables, saveTerrainBoxes,
-getCancelledDates, saveCancelledDates,
-getSpecialEventDates, saveSpecialEventDates
-} from './services/storageService';
 import { getSelectableDates, getUpcomingTuesdays } from './constants';
-import { Booking, User, Table, TerrainBox } from './types';
-
-// Initialize local inventory data (Bookings/Tables are still local for now)
-initInventory();
+import { Booking, User, Table, TableSize, TerrainBox, TerrainCategory } from './types';
 
 const App: React.FC = () => {
 const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'layout' | 'stats' | 'profile' | 'admin'>('home');
@@ -46,16 +37,20 @@ const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
-const loadLocalData = () => {
-setAllBookings(getBookings());
-setTables(getTables());
-setTerrainBoxes(getTerrainBoxes());
-setCancelledDates(getCancelledDates());
-setSpecialEventDates(getSpecialEventDates());
-};
-
 useEffect(() => {
-loadLocalData();
+// Initialize default inventory in Firestore if empty
+firebaseService.initTablesIfEmpty();
+firebaseService.initTerrainBoxesIfEmpty();
+
+// Subscribe to real-time Firestore data
+const unsubBookings = firebaseService.subscribeBookings(setAllBookings);
+const unsubTables = firebaseService.subscribeTables(setTables);
+const unsubTerrain = firebaseService.subscribeTerrainBoxes(setTerrainBoxes);
+const unsubSchedule = firebaseService.subscribeScheduleConfig((cancelled, special) => {
+    setCancelledDates(cancelled);
+    setSpecialEventDates(special);
+});
+
 // Listen for Firebase Auth changes
 const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
 try {
@@ -92,7 +87,13 @@ setUser(null);
 setLoading(false);
 }
 });
-return () => unsubscribe();
+return () => {
+    unsubscribe();
+    unsubBookings();
+    unsubTables();
+    unsubTerrain();
+    unsubSchedule();
+};
 }, []);
 
 useEffect(() => {
@@ -101,9 +102,8 @@ setSelectedDate(selectableDates[0].value);
 }
 }, [selectableDates, selectedDate]);
 
-const handleBookingSave = (booking: Booking) => {
-saveBooking(booking);
-loadLocalData();
+const handleBookingSave = async (booking: Booking) => {
+await firebaseService.saveBooking(booking);
 };
 
 const handleLogout = async () => {
@@ -117,10 +117,9 @@ setEditingBooking(booking);
 setIsBookingModalOpen(true);
 };
 
-const handleDelete = (id: string) => {
+const handleDelete = async (id: string) => {
 if (confirm('Are you sure you want to cancel this booking?')) {
-deleteBooking(id);
-loadLocalData();
+await firebaseService.deleteBookingFromDb(id);
 }
 };
 
@@ -129,10 +128,10 @@ setEditingBooking(null);
 setIsBookingModalOpen(true);
 };
 
-const handleTablesUpdate = (updatedTables: Table[]) => { saveTables(updatedTables); setTables(updatedTables); };
-const handleTerrainUpdate = (updatedTerrain: TerrainBox[]) => { saveTerrainBoxes(updatedTerrain); setTerrainBoxes(updatedTerrain); };
-const handleCancelledDatesUpdate = (dates: string[]) => { saveCancelledDates(dates); setCancelledDates(dates); };
-const handleSpecialEventDatesUpdate = (dates: string[]) => { saveSpecialEventDates(dates); setSpecialEventDates(dates); };
+const handleTablesUpdate = async (updatedTables: Table[]) => { await firebaseService.saveTablesToDb(updatedTables); };
+const handleTerrainUpdate = async (updatedTerrain: TerrainBox[]) => { await firebaseService.saveTerrainBoxesToDb(updatedTerrain); };
+const handleCancelledDatesUpdate = async (dates: string[]) => { await firebaseService.saveCancelledDatesToDb(dates); };
+const handleSpecialEventDatesUpdate = async (dates: string[]) => { await firebaseService.saveSpecialEventDatesToDb(dates); };
 
 // Function to refresh the user list from Firebase (passed to AdminView)
 const refreshUsers = async () => {
@@ -209,44 +208,92 @@ Table Status
 <p className="text-neutral-400 mt-2">The club is closed on this date. Bookings are not available.</p>
 </div>
 ) : (
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-{tables.map(table => {
-const booking = bookingsForSelectedDate.find(b => b.tableId === table.id);
-const isMyBooking = user && booking?.memberId === user.id;
-return (
-                        <div key={table.id} className={`relative rounded-xl border-2 p-4 transition-all duration-300 ${booking ? (isMyBooking ? 'bg-amber-900/20 border-amber-600/50' : 'bg-red-900/10 border-red-900/30') : 'bg-neutral-800 border-neutral-700 hover:border-neutral-500'}`}>
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="font-bold text-neutral-200">{table.name}</span>
-                                <span className="text-xs px-2 py-0.5 rounded bg-neutral-900 text-neutral-500 border border-neutral-700">{table.size}</span>
+<div className="space-y-3">
+{Object.values(TableSize).map(size => {
+    const tablesInGroup = tables.filter(t => t.size === size);
+    if (tablesInGroup.length === 0) return null;
+    const availableCount = tablesInGroup.filter(t => !bookingsForSelectedDate.find(b => b.tableId === t.id)).length;
+    const totalCount = tablesInGroup.length;
+    const sizeLabel = size === TableSize.LARGE ? 'Large Tables (6x4)' : 'Small Tables (3x4)';
+    return (
+        <div key={size} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-neutral-200">{sizeLabel}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${availableCount > 0 ? 'bg-green-900/30 text-green-400 border border-green-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
+                    {availableCount}/{totalCount} available
+                </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {tablesInGroup.map(table => {
+                    const booking = bookingsForSelectedDate.find(b => b.tableId === table.id);
+                    const isMyBooking = user && booking?.memberId === user.id;
+                    const tooltipText = booking
+                        ? `${booking.gameSystem} — ${booking.memberName} (${booking.playerCount}p)${booking.terrainBoxId ? '\nTerrain: ' + (terrainBoxes.find(t => t.id === booking.terrainBoxId)?.name || 'Terrain') : ''}`
+                        : 'Available';
+                    return (
+                        <div key={table.id} className="relative group">
+                            <div className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-default ${booking ? (isMyBooking ? 'bg-amber-900/20 border-amber-600/50 text-amber-300' : 'bg-red-900/20 border-red-900/40 text-red-300') : 'bg-neutral-900 border-neutral-600 text-neutral-300'}`}
+                                 title={tooltipText}>
+                                <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${booking ? 'bg-red-400' : 'bg-green-400'}`}></span>
+                                {table.name}
                             </div>
-                            {booking ? (
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm text-neutral-300">
-                                        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <span className="font-medium text-amber-100">{booking.gameSystem}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs text-neutral-400">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                        <span>{booking.memberName} ({booking.playerCount}p)</span>
-                                    </div>
-                                    {booking.terrainBoxId && (
-                                         <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                                            <span>{terrainBoxes.find(t => t.id === booking.terrainBoxId)?.name || 'Terrain'}</span>
-                                         </div>
-                                    )}
-                                    {(isMyBooking || user?.isAdmin) && user.isMember && (
-                                        <div className="pt-3 mt-3 border-t border-amber-900/30 flex gap-2">
-                                            <button onClick={() => handleEdit(booking)} className="flex-1 text-xs bg-neutral-800 hover:bg-neutral-700 py-1.5 rounded text-neutral-300 transition-colors">Edit</button>
-                                            <button onClick={() => handleDelete(booking.id)} className="flex-1 text-xs bg-red-900/30 hover:bg-red-900/50 py-1.5 rounded text-red-300 transition-colors">Cancel</button>
-                                        </div>
-                                    )}
+                            {booking && (isMyBooking || user?.isAdmin) && user?.isMember && (
+                                <div className="absolute z-10 top-full mt-1 left-0 hidden group-hover:flex gap-1">
+                                    <button onClick={() => handleEdit(booking)} className="text-[10px] bg-neutral-700 hover:bg-neutral-600 px-2 py-1 rounded text-neutral-300 transition-colors whitespace-nowrap">Edit</button>
+                                    <button onClick={() => handleDelete(booking.id)} className="text-[10px] bg-red-900/40 hover:bg-red-900/60 px-2 py-1 rounded text-red-300 transition-colors whitespace-nowrap">Cancel</button>
                                 </div>
-                            ) : (
-                                <div className="h-20 flex items-center justify-center text-neutral-600 text-sm">Available</div>
                             )}
                         </div>
-                    )
+                    );
+                })}
+            </div>
+        </div>
+    );
+})}
+            </div>
+        )}
+    </div>
+    <div>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="w-2 h-8 bg-amber-600 rounded-full inline-block"></span>
+            Terrain Box Status
+        </h2>
+        {isDateCancelled ? (
+            <div className="bg-neutral-800 border-2 border-red-900/50 rounded-xl p-8 text-center">
+                <h3 className="text-2xl font-bold text-red-400">Club Closed</h3>
+                <p className="text-neutral-400 mt-2">The club is closed on this date.</p>
+            </div>
+        ) : (
+            <div className="space-y-3">
+                {Object.values(TerrainCategory).map(category => {
+                    const boxesInCategory = terrainBoxes.filter(tb => tb.category === category);
+                    if (boxesInCategory.length === 0) return null;
+                    const bookedTerrainIds = new Set(bookingsForSelectedDate.filter(b => b.terrainBoxId).map(b => b.terrainBoxId));
+                    const availableCount = boxesInCategory.filter(tb => !bookedTerrainIds.has(tb.id)).length;
+                    const totalCount = boxesInCategory.length;
+                    return (
+                        <div key={category} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="font-semibold text-neutral-200">{category}</h3>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${availableCount > 0 ? 'bg-green-900/30 text-green-400 border border-green-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
+                                    {availableCount}/{totalCount} available
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {boxesInCategory.map(box => {
+                                    const isBooked = bookedTerrainIds.has(box.id);
+                                    const booking = isBooked ? bookingsForSelectedDate.find(b => b.terrainBoxId === box.id) : null;
+                                    return (
+                                        <div key={box.id} className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${isBooked ? 'bg-red-900/20 border-red-900/40 text-red-300' : 'bg-neutral-900 border-neutral-600 text-neutral-300'}`}
+                                             title={isBooked && booking ? `Booked by ${booking.memberName} on ${booking.gameSystem}` : 'Available'}>
+                                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${isBooked ? 'bg-red-400' : 'bg-green-400'}`}></span>
+                                            {box.name}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
                 })}
             </div>
         )}
@@ -293,6 +340,7 @@ terrainBoxes={terrainBoxes}
 cancelledDates={cancelledDates}
 bookableDates={bookableDates}
 initialDate={selectedDate}
+allBookings={allBookings}
 />
 )}
 <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
