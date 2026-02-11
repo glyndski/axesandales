@@ -14,9 +14,7 @@ export enum TerrainCategory {
   HISTORICAL = 'Historical',
   FANTASY = 'Fantasy',
   AOS = 'Age of Sigmar',
-  WARHAMMER_40K = 'Warhammer 40k',
-  HILLS = 'Hills',
-  MODERN = 'Modern'
+  WARHAMMER_40K = 'Warhammer 40k'
 }
 
 export interface TerrainBox {
