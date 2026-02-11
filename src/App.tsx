@@ -21,7 +21,7 @@ import { Booking, User, Table, TerrainBox } from './types';
 initInventory();
 
 const App: React.FC = () => {
-const [currentPage, setCurrentPage] = useState('home');
+const [currentPage, setCurrentPage] = useState<'home' | 'stats' | 'profile' | 'admin'>('home');
 const [user, setUser] = useState<User | null>(null);
 const [loading, setLoading] = useState(true);
 
@@ -59,8 +59,16 @@ const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
 try {
 if (firebaseUser) {
 // Get rich profile from Firestore
-const userProfile = await firebaseService.getUserProfile(firebaseUser.uid);
-if (userProfile) {
+let userProfile = await firebaseService.getUserProfile(firebaseUser.uid);
+if (!userProfile) {
+// Auto-create pending profile (e.g. first-time Google sign-in handled elsewhere,
+// but cover edge cases where auth exists without a profile)
+userProfile = await firebaseService.createPendingProfile(
+  firebaseUser.uid,
+  firebaseUser.email || '',
+  firebaseUser.displayName || firebaseUser.email || 'New User'
+);
+}
 setUser(userProfile);
 // If Admin, fetch all users
 if(userProfile.isAdmin) {
@@ -70,11 +78,6 @@ setUsers(allUsers);
 } catch (e) {
 console.error("Could not fetch users list:", e);
 }
-}
-} else {
-// Auth exists, but Firestore profile is missing
-console.warn("User authenticated but no profile found in 'users' collection.");
-setUser(null);
 }
 } else {
 setUser(null);
@@ -152,8 +155,25 @@ return (
 );
 }
 
+const renderPendingBanner = () => {
+if (!user || user.isMember || user.isAdmin) return null;
+return (
+<div className="bg-amber-900/30 border border-amber-700/50 rounded-xl p-4 flex items-start gap-3">
+  <div className="mt-0.5">
+    <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+  </div>
+  <div>
+    <h3 className="text-amber-300 font-semibold">Unpaid Membership</h3>
+    <p className="text-neutral-400 text-sm mt-1">Your membership is not yet active. You can browse the dashboard but cannot book tables until an admin confirms your payment.</p>
+    <p className="text-neutral-400 text-sm mt-1">If you have any questions, please email <a href="mailto:axesandalescommittee@gmail.com" className="text-amber-400 hover:text-amber-300 underline">axesandalescommittee@gmail.com</a>.</p>
+  </div>
+</div>
+);
+};
+
 const renderDashboard = () => (
 <div className="space-y-8 animate-fade-in">
+{renderPendingBanner()}
 <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-neutral-800 p-4 rounded-xl border border-neutral-700 shadow-lg">
 <div className="flex items-center gap-3 w-full md:w-auto">
 <label className="text-neutral-400 font-medium whitespace-nowrap">Viewing Date:</label>
@@ -191,9 +211,6 @@ Table Status
 {tables.map(table => {
 const booking = bookingsForSelectedDate.find(b => b.tableId === table.id);
 const isMyBooking = user && booking?.memberId === user.id;
-code Code
-
-    
 return (
                         <div key={table.id} className={`relative rounded-xl border-2 p-4 transition-all duration-300 ${booking ? (isMyBooking ? 'bg-amber-900/20 border-amber-600/50' : 'bg-red-900/10 border-red-900/30') : 'bg-neutral-800 border-neutral-700 hover:border-neutral-500'}`}>
                             <div className="flex justify-between items-start mb-2">
@@ -243,7 +260,7 @@ return (
 <Layout user={user} onLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} currentPage={currentPage} onNavigate={setCurrentPage}>
 {currentPage === 'home' && renderDashboard()}
 {currentPage === 'stats' && <StatsView />}
-{currentPage === 'profile' && user && !user.isAdmin && <ProfileView user={user} />}
+    {currentPage === 'profile' && user && <ProfileView user={user} />}
 {currentPage === 'admin' && user?.isAdmin && (
 <AdminView
 tables={tables}
@@ -280,4 +297,4 @@ initialDate={selectedDate}
 };
 
 export default App;
-]
+

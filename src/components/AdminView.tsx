@@ -18,7 +18,7 @@ interface AdminViewProps {
 
 const defaultTable: Omit<Table, 'id'> = { name: '', size: TableSize.LARGE };
 const defaultTerrain: Omit<TerrainBox, 'id'> = { name: '', category: TerrainCategory.SCIFI, imageUrl: '' };
-const defaultUser: Partial<User> = { email: '', name: '', isMember: true, isAdmin: false };
+
 
 const DragHandle: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,8 +33,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 }) => {
   const [editingTable, setEditingTable] = useState<Table | Partial<Table> | null>(null);
   const [editingTerrain, setEditingTerrain] = useState<TerrainBox | Partial<TerrainBox> | null>(null);
-  const [editingUser, setEditingUser] = useState<User | Partial<User> | null>(null);
-  const [userPassword, setUserPassword] = useState<string>('');
+  const [userFilter, setUserFilter] = useState<'all' | 'pending' | 'member' | 'admin'>('all');
   
   const [dateToCancel, setDateToCancel] = useState<string>(new Date().toISOString().split('T')[0]);
   const [specialDateToAdd, setSpecialDateToAdd] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -105,42 +104,37 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if(confirm('Delete this terrain box?')) onTerrainChange(terrainBoxes.filter(t => t.id !== id));
   }
 
-  const handleSaveUser = async () => {
-    if (!editingUser || !editingUser.name || !editingUser.email) return;
-
+  const handleSetRole = async (uid: string, role: 'pending' | 'member' | 'admin') => {
+    if (uid === currentUser.id) return alert("Cannot change your own role.");
     try {
-        if ('id' in editingUser) { // Editing
-            await firebaseService.updateUserProfile(editingUser.id as string, {
-                name: editingUser.name,
-                isMember: editingUser.isMember,
-                isAdmin: editingUser.isAdmin
-            });
-        } else { // New
-            if (!userPassword) { alert("Password required"); return; }
-            await firebaseService.createUser(
-                editingUser.email!, 
-                userPassword, 
-                editingUser.name!, 
-                editingUser.isMember!, 
-                editingUser.isAdmin!
-            );
-        }
-        onUsersChange();
-        setEditingUser(null);
-        setUserPassword('');
+      const updates: Partial<User> = {
+        isMember: role === 'member' || role === 'admin',
+        isAdmin: role === 'admin',
+      };
+      await firebaseService.updateUserProfile(uid, updates);
+      onUsersChange();
     } catch (e) {
-        alert("Error saving user. Check console.");
-        console.error(e);
+      alert('Error updating user role. Check console.');
+      console.error(e);
     }
-  }
+  };
 
   const handleDeleteUser = async (id: string) => {
     if (id === currentUser.id) return alert("Cannot delete self.");
-    if(confirm('Delete this user?')) {
+    if(confirm('Delete this user? This only removes their profile data, not their authentication account.')) {
         await firebaseService.deleteUser(id);
         onUsersChange();
     }
-  }
+  };
+
+  const getUserRole = (u: User): 'pending' | 'member' | 'admin' => {
+    if (u.isAdmin) return 'admin';
+    if (u.isMember) return 'member';
+    return 'pending';
+  };
+
+  const filteredUsers = userFilter === 'all' ? users : users.filter(u => getUserRole(u) === userFilter);
+  const pendingCount = users.filter(u => !u.isMember && !u.isAdmin).length;
 
   const handleCancelDate = () => {
     if (dateToCancel && !cancelledDates.includes(dateToCancel)) {
@@ -192,26 +186,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     </div>
   )
 
-  const renderUserForm = () => (
-     <div className="bg-neutral-800 p-4 rounded-lg mt-4 border border-amber-700/50 space-y-3">
-        <h3 className="font-bold text-amber-500">{editingUser && 'id' in editingUser ? `Edit ${editingUser.name}` : 'Add New Member'}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input type="text" placeholder="Name" value={editingUser?.name || ''} onChange={(e) => setEditingUser({...editingUser, name: e.target.value })} className="w-full bg-neutral-900 border border-neutral-600 rounded px-3 py-2 text-white" />
-            <input type="email" placeholder="Email" value={editingUser?.email || ''} onChange={(e) => setEditingUser({...editingUser, email: e.target.value })} className="w-full bg-neutral-900 border border-neutral-600 rounded px-3 py-2 text-white" disabled={!!(editingUser && 'id' in editingUser)} />
-        </div>
-        {!(editingUser && 'id' in editingUser) && (
-            <input type="password" placeholder="Initial Password" value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className="w-full bg-neutral-900 border border-neutral-600 rounded px-3 py-2 text-white" />
-        )}
-        <div className="flex items-center gap-4 pt-2">
-            <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingUser?.isMember || false} onChange={e => setEditingUser({...editingUser, isMember: e.target.checked})} className="bg-neutral-900" /> Paid Member</label>
-            <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={editingUser?.isAdmin || false} onChange={e => setEditingUser({...editingUser, isAdmin: e.target.checked})} className="bg-neutral-900" /> Admin</label>
-        </div>
-        <div className="flex gap-2 pt-2">
-            <button onClick={handleSaveUser} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded text-sm">Save</button>
-            <button onClick={() => setEditingUser(null)} className="bg-neutral-700 text-white px-4 py-1.5 rounded text-sm">Cancel</button>
-        </div>
-    </div>
-  )
+
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -257,26 +232,65 @@ export const AdminView: React.FC<AdminViewProps> = ({
       </div>
       {/* Users */}
       <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
-        <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Manage Members ({users.length})</h2>
-            <button onClick={() => setEditingUser(defaultUser)} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded text-sm">+ Add Member</button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold">Manage Users ({users.length})</h2>
+                {pendingCount > 0 && (
+                    <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">{pendingCount} unpaid</span>
+                )}
+            </div>
+            <div className="flex gap-1 bg-neutral-900 rounded-lg p-1">
+                {(['all', 'pending', 'member', 'admin'] as const).map(f => (
+                    <button key={f} onClick={() => setUserFilter(f)} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${userFilter === f ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white'}`}>
+                        {f === 'all' ? `All (${users.length})` : f === 'pending' ? `Unpaid (${users.filter(u => !u.isMember && !u.isAdmin).length})` : f === 'member' ? `Paid (${users.filter(u => u.isMember && !u.isAdmin).length})` : `Admins (${users.filter(u => u.isAdmin).length})`}
+                    </button>
+                ))}
+            </div>
         </div>
-        {editingUser && renderUserForm()}
-        <div className="mt-4 space-y-2 max-h-96 overflow-y-auto pr-2">
-            {users.map(user => (
-                <div key={user.id} className="flex items-center justify-between bg-neutral-800 p-2 rounded">
-                    <div className="flex items-center gap-3">
-                        <span className="font-medium">{user.name}</span>
-                        <span className="text-xs text-neutral-400">{user.email}</span>
-                        {user.isMember ? <span className="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full">Paid</span> : <span className="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded-full">Lapsed</span>}
-                        {user.isAdmin && <span className="text-xs text-amber-400 bg-amber-900/50 px-2 py-0.5 rounded-full">Admin</span>}
+        <div className="mt-4 space-y-2 max-h-[32rem] overflow-y-auto pr-2">
+            {filteredUsers.length === 0 && (
+                <div className="text-center py-8 text-neutral-500">No users in this category.</div>
+            )}
+            {filteredUsers.map(u => {
+                const role = getUserRole(u);
+                const isSelf = u.id === currentUser.id;
+                return (
+                    <div key={u.id} className={`flex flex-col md:flex-row md:items-center justify-between bg-neutral-800 p-3 rounded-lg border ${role === 'pending' ? 'border-amber-700/40' : 'border-neutral-700'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${role === 'admin' ? 'bg-amber-600 text-black' : role === 'member' ? 'bg-green-800 text-green-200' : 'bg-neutral-700 text-neutral-400'}`}>
+                                {u.name?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-medium text-white truncate">{u.name}</span>
+                                    {isSelf && <span className="text-xs text-neutral-500">(you)</span>}
+                                    {role === 'pending' && <span className="text-xs text-orange-400 bg-orange-900/50 px-2 py-0.5 rounded-full border border-orange-800">Unpaid Member</span>}
+                                    {role === 'member' && <span className="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full border border-green-800">Paid Member</span>}
+                                    {role === 'admin' && <span className="text-xs text-amber-400 bg-amber-900/50 px-2 py-0.5 rounded-full border border-amber-800">Admin</span>}
+                                </div>
+                                <span className="text-xs text-neutral-500 truncate block">{u.email}</span>
+                            </div>
+                        </div>
+                        {!isSelf && (
+                            <div className="flex gap-2 mt-2 md:mt-0 flex-shrink-0">
+                                {role === 'pending' && (
+                                    <button onClick={() => handleSetRole(u.id, 'member')} className="text-xs bg-green-800 hover:bg-green-700 text-green-100 px-3 py-1.5 rounded font-medium transition-colors">Mark as Paid</button>
+                                )}
+                                {role === 'member' && (
+                                    <button onClick={() => handleSetRole(u.id, 'admin')} className="text-xs bg-amber-800 hover:bg-amber-700 text-amber-100 px-3 py-1.5 rounded font-medium transition-colors">Make Admin</button>
+                                )}
+                                {role === 'admin' && (
+                                    <button onClick={() => handleSetRole(u.id, 'member')} className="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-200 px-3 py-1.5 rounded font-medium transition-colors">Remove Admin Status</button>
+                                )}
+                                {role !== 'pending' && (
+                                    <button onClick={() => handleSetRole(u.id, 'pending')} className="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-3 py-1.5 rounded font-medium transition-colors">Remove Membership</button>
+                                )}
+                                <button onClick={() => handleDeleteUser(u.id)} className="text-xs bg-red-900/50 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded font-medium transition-colors">Delete</button>
+                            </div>
+                        )}
                     </div>
-                    <div className="flex gap-3">
-                        <button onClick={() => setEditingUser(user)} className="text-xs text-neutral-400 hover:text-white">Edit</button>
-                        <button onClick={() => handleDeleteUser(user.id)} className="text-xs text-red-500 hover:text-red-400">Delete</button>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
       </div>
       {/* Tables */}

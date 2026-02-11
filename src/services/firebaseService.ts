@@ -2,7 +2,9 @@ import {
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut,
-    updatePassword
+    updatePassword,
+    GoogleAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { 
     doc, 
@@ -15,6 +17,8 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { User } from '../types';
+
+const googleProvider = new GoogleAuthProvider();
 
 // Fetch a user's profile from Firestore
 export const getUserProfile = async (uid: string): Promise<User | null> => {
@@ -31,6 +35,40 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
         };
     }
     return null;
+};
+
+// Create a pending Firestore profile for a new user
+export const createPendingProfile = async (uid: string, email: string, name: string): Promise<User> => {
+    const profile: Omit<User, 'id'> = {
+        email,
+        name,
+        isMember: false,
+        isAdmin: false,
+    };
+    await setDoc(doc(db, 'users', uid), profile);
+    return { id: uid, ...profile };
+};
+
+// Self-service registration (email/password)
+export const register = async (email: string, password: string, name: string): Promise<User> => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const { user } = userCredential;
+    return createPendingProfile(user.uid, email, name);
+};
+
+// Google sign-in (creates profile if first time)
+export const signInWithGoogle = async (): Promise<User> => {
+    const result = await signInWithPopup(auth, googleProvider);
+    const { user } = result;
+    // Check if profile already exists
+    const existing = await getUserProfile(user.uid);
+    if (existing) return existing;
+    // First-time Google user — create pending profile
+    return createPendingProfile(
+        user.uid,
+        user.email || '',
+        user.displayName || user.email || 'New User'
+    );
 };
 
 // Login
@@ -62,19 +100,6 @@ export const getAllUsers = async (): Promise<User[]> => {
         ...doc.data()
     } as User));
     return userList;
-};
-
-export const createUser = async (email: string, pass: string, name: string, isMember: boolean, isAdmin: boolean) => {
-    alert("SECURITY WARNING: User creation is happening on the client. For this to work, you must manually create the user in the Firebase Authentication console first, then add their profile here.");
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const { user } = userCredential;
-    await setDoc(doc(db, 'users', user.uid), {
-        email,
-        name,
-        isMember,
-        isAdmin,
-    });
-    return { id: user.uid, email, name, isMember, isAdmin };
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<User>) => {
