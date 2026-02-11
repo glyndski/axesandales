@@ -151,6 +151,56 @@ export const AboutView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Membership & Payment */}
+      <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-xl space-y-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <span className="w-2 h-8 bg-amber-600 rounded-full inline-block"></span>
+          Membership &amp; Payment
+        </h2>
+        <p className="text-neutral-300 leading-relaxed">
+          Memberships are valid for each Financial Year, running from <span className="text-white font-medium">1 July</span> to <span className="text-white font-medium">30 June</span>.
+        </p>
+        <div className="bg-neutral-900/50 rounded-lg p-4 border border-neutral-700 flex items-center justify-between">
+          <span className="text-neutral-300">Regular Annual Membership</span>
+          <span className="text-amber-400 text-xl font-bold">$60</span>
+        </div>
+
+        <h3 className="text-white font-semibold mt-2">How to Join / Renew</h3>
+        <ol className="list-decimal list-inside space-y-2 text-neutral-300">
+          <li>
+            <span className="font-medium text-white">Create an account</span> on this site using the <span className="text-amber-400">Sign In</span> button above. Make note of the email address you use.
+          </li>
+          <li>
+            <span className="font-medium text-white">Make your payment</span> using the PayPal button below. When paying, <span className="text-amber-400 font-medium">include the email address you signed up with</span> so we can match your payment to your account.
+          </li>
+          <li>
+            Once payment is confirmed, the committee will activate your membership.
+          </li>
+        </ol>
+
+        <div className="bg-neutral-900/50 rounded-lg p-4 border border-neutral-700 space-y-3 mt-2">
+          <p className="text-neutral-400 text-sm">
+            You do <span className="text-white font-medium">NOT</span> need a PayPal account — you can choose to pay with a credit or debit card instead.
+          </p>
+          <div className="flex justify-center">
+            <a
+              href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TZDSJZUZDTPSG"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-lg"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797H9.603c-.564 0-1.04.408-1.13.964L7.076 21.337z"/></svg>
+              Pay Now with PayPal
+            </a>
+          </div>
+        </div>
+
+        <p className="text-neutral-500 text-sm text-center mt-2">
+          If you pay using an email address that doesn't match the one you signed up with, please{' '}
+          <a href="mailto:axesandalescommittee@gmail.com" className="text-amber-400 hover:text-amber-300 underline">contact the committee</a> so we can link your payment.
+        </p>
+      </div>
     </div>
   );
 };
