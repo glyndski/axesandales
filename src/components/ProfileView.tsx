@@ -36,8 +36,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
         <div className="space-y-3 bg-neutral-900/50 p-4 rounded-lg border border-neutral-700">
           <div className="flex justify-between items-center"><span className="text-neutral-400">Display Name:</span><span className="font-medium text-white">{user.name}</span></div>
           <div className="flex justify-between items-center"><span className="text-neutral-400">Email:</span><span className="font-medium text-white">{user.email}</span></div>
-          <div className="flex justify-between items-center"><span className="text-neutral-400">Membership Status:</span>{user.isMember ? <span className="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full border border-green-800">Active</span> : <span className="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-800">Lapsed</span>}</div>
+          <div className="flex justify-between items-center"><span className="text-neutral-400">Membership Status:</span>
+            {user.isAdmin
+              ? <span className="text-xs text-amber-400 bg-amber-900/50 px-2 py-0.5 rounded-full border border-amber-800">Admin</span>
+              : user.isMember
+                ? <span className="text-xs text-green-400 bg-green-900/50 px-2 py-0.5 rounded-full border border-green-800">Paid Member</span>
+                : <span className="text-xs text-orange-400 bg-orange-900/50 px-2 py-0.5 rounded-full border border-orange-800">Unpaid Member</span>}
+          </div>
         </div>
+        {!user.isMember && !user.isAdmin && (
+          <div className="mt-4 bg-amber-900/20 border border-amber-700/40 rounded-lg p-4">
+            <p className="text-amber-300 text-sm font-medium">Your membership is currently unpaid.</p>
+            <p className="text-neutral-400 text-xs mt-1">Once an admin confirms your payment and activates your membership, you'll be able to book tables and access all club features.</p>
+          </div>
+        )}
         <div className="mt-6">
             <h3 className="text-lg font-bold text-white mb-3">Change Password</h3>
             <form onSubmit={handlePasswordChange} className="space-y-4 bg-neutral-900/50 p-4 rounded-lg border border-neutral-700">
