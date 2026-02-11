@@ -5,6 +5,8 @@ import { LoginModal } from './components/LoginModal';
 import { StatsView } from './components/StatsView';
 import { AdminView } from './components/AdminView';
 import { ProfileView } from './components/ProfileView';
+import { AboutView } from './components/AboutView';
+import { ClubLayoutView } from './components/ClubLayoutView';
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as firebaseService from './services/firebaseService';
@@ -21,7 +23,7 @@ import { Booking, User, Table, TerrainBox } from './types';
 initInventory();
 
 const App: React.FC = () => {
-const [currentPage, setCurrentPage] = useState<'home' | 'stats' | 'profile' | 'admin'>('home');
+const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'layout' | 'stats' | 'profile' | 'admin'>('home');
 const [user, setUser] = useState<User | null>(null);
 const [loading, setLoading] = useState(true);
 
@@ -259,6 +261,8 @@ return (
 <>
 <Layout user={user} onLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} currentPage={currentPage} onNavigate={setCurrentPage}>
 {currentPage === 'home' && renderDashboard()}
+{currentPage === 'about' && <AboutView />}
+{currentPage === 'layout' && <ClubLayoutView />}
 {currentPage === 'stats' && <StatsView />}
     {currentPage === 'profile' && user && <ProfileView user={user} />}
 {currentPage === 'admin' && user?.isAdmin && (
@@ -297,4 +301,3 @@ initialDate={selectedDate}
 };
 
 export default App;
-
