@@ -37,14 +37,20 @@ const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
-// Popover state for booked items
-const [popover, setPopover] = useState<{ booking: Booking; type: 'table' | 'terrain'; rect: DOMRect } | null>(null);
+// Popover state for booked items and terrain preview
+const [popover, setPopover] = useState<{ booking?: Booking; terrainBox?: TerrainBox; type: 'table' | 'terrain'; rect: DOMRect } | null>(null);
 const popoverRef = useRef<HTMLDivElement>(null);
 const popoverTimeout = useRef<ReturnType<typeof setTimeout>>();
 
 const showPopover = useCallback((booking: Booking, type: 'table' | 'terrain', el: HTMLElement) => {
   clearTimeout(popoverTimeout.current);
-  setPopover({ booking, type, rect: el.getBoundingClientRect() });
+  const terrainBox = type === 'terrain' && booking.terrainBoxId ? terrainBoxes.find(t => t.id === booking.terrainBoxId) : undefined;
+  setPopover({ booking, terrainBox, type, rect: el.getBoundingClientRect() });
+}, [terrainBoxes]);
+
+const showTerrainPopover = useCallback((box: TerrainBox, booking: Booking | undefined, el: HTMLElement) => {
+  clearTimeout(popoverTimeout.current);
+  setPopover({ booking, terrainBox: box, type: 'terrain', rect: el.getBoundingClientRect() });
 }, []);
 
 const hidePopover = useCallback(() => {
@@ -291,11 +297,11 @@ Table Status
                             <div className="flex flex-wrap gap-2">
                                 {boxesInCategory.map(box => {
                                     const isBooked = bookedTerrainIds.has(box.id);
-                                    const booking = isBooked ? bookingsForSelectedDate.find(b => b.terrainBoxId === box.id) : null;
+                                    const booking = isBooked ? bookingsForSelectedDate.find(b => b.terrainBoxId === box.id) : undefined;
                                     return (
                                         <div key={box.id}
-                                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${isBooked ? 'cursor-pointer bg-red-900/20 border-red-900/40 text-red-300' : 'cursor-default bg-neutral-900 border-neutral-600 text-neutral-300'}`}
-                                            onMouseEnter={(e) => booking && showPopover(booking, 'terrain', e.currentTarget)}
+                                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${isBooked ? 'bg-red-900/20 border-red-900/40 text-red-300' : 'bg-neutral-900 border-neutral-600 text-neutral-300 hover:border-neutral-400'}`}
+                                            onMouseEnter={(e) => showTerrainPopover(box, booking, e.currentTarget)}
                                             onMouseLeave={hidePopover}>
                                             <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${isBooked ? 'bg-red-400' : 'bg-green-400'}`}></span>
                                             {box.name}
@@ -358,42 +364,64 @@ allBookings={allBookings}
 {popover && (
   <div
     ref={popoverRef}
-    className="fixed z-50 bg-neutral-800 border border-neutral-600 rounded-xl shadow-2xl shadow-black/50 p-4 min-w-[220px] animate-fade-in"
+    className="fixed z-50 bg-neutral-800 border border-neutral-600 rounded-xl shadow-2xl shadow-black/50 min-w-[260px] max-w-[340px] animate-fade-in overflow-hidden"
     style={{
       top: popover.rect.bottom + 8,
-      left: Math.min(popover.rect.left, window.innerWidth - 260),
+      left: Math.min(popover.rect.left, window.innerWidth - 300),
     }}
     onMouseEnter={keepPopover}
     onMouseLeave={hidePopover}
   >
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-        <span className="text-sm font-semibold text-white">{popover.booking.memberName}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <span className="text-sm text-neutral-300">{popover.booking.gameSystem}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        <span className="text-sm text-neutral-400">{popover.booking.playerCount} players</span>
-      </div>
-      {popover.booking.terrainBoxId && (
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-          <span className="text-sm text-neutral-400">{terrainBoxes.find(t => t.id === popover.booking.terrainBoxId)?.name || 'Terrain'}</span>
+    {popover.terrainBox && (
+      <img src={popover.terrainBox.imageUrl} alt={popover.terrainBox.name} className="w-full h-48 object-cover" />
+    )}
+    <div className="p-4 space-y-2">
+      {popover.terrainBox && (
+        <div className="text-sm font-bold text-white">{popover.terrainBox.name}
+          <span className="ml-2 text-xs font-normal text-neutral-400">{popover.terrainBox.category}</span>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-        <span className="text-sm text-neutral-400">{tables.find(t => t.id === popover.booking.tableId)?.name || 'Table'}</span>
-      </div>
+      {popover.booking ? (
+        <>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            <span className="text-sm font-semibold text-white">{popover.booking.memberName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span className="text-sm text-neutral-300">{popover.booking.gameSystem}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span className="text-sm text-neutral-400">{popover.booking.playerCount} players</span>
+          </div>
+          {!popover.terrainBox && popover.booking.terrainBoxId && (
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+              <span className="text-sm text-neutral-400">{terrainBoxes.find(t => t.id === popover.booking!.terrainBoxId)?.name || 'Terrain'}</span>
+            </div>
+          )}
+          {popover.type === 'table' && (
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <span className="text-sm text-neutral-400">{tables.find(t => t.id === popover.booking!.tableId)?.name || 'Table'}</span>
+            </div>
+          )}
+          {popover.type === 'terrain' && (
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <span className="text-sm text-neutral-400">{tables.find(t => t.id === popover.booking!.tableId)?.name || 'Table'}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-xs text-green-400 font-medium">Available</div>
+      )}
     </div>
-    {user && (user.id === popover.booking.memberId || user.isAdmin) && (
-      <div className="mt-3 pt-3 border-t border-neutral-700 flex gap-2">
-        <button onClick={() => { setPopover(null); handleEdit(popover.booking); }} className="flex-1 text-xs bg-neutral-700 hover:bg-neutral-600 py-1.5 rounded text-neutral-300 transition-colors">Edit</button>
-        <button onClick={() => { setPopover(null); handleDelete(popover.booking.id); }} className="flex-1 text-xs bg-red-900/30 hover:bg-red-900/50 py-1.5 rounded text-red-300 transition-colors">Cancel</button>
+    {popover.booking && user && (user.id === popover.booking.memberId || user.isAdmin) && (
+      <div className="px-4 pb-4 pt-1 border-t border-neutral-700 flex gap-2">
+        <button onClick={() => { const b = popover.booking!; setPopover(null); handleEdit(b); }} className="flex-1 text-xs bg-neutral-700 hover:bg-neutral-600 py-1.5 rounded text-neutral-300 transition-colors">Edit</button>
+        <button onClick={() => { const id = popover.booking!.id; setPopover(null); handleDelete(id); }} className="flex-1 text-xs bg-red-900/30 hover:bg-red-900/50 py-1.5 rounded text-red-300 transition-colors">Cancel</button>
       </div>
     )}
   </div>

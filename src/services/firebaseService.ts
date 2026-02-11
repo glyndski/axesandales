@@ -149,6 +149,14 @@ export const subscribeTables = (callback: (tables: Table[]) => void): Unsubscrib
     const q = query(collection(db, 'tables'));
     return onSnapshot(q, (snapshot) => {
         const tables = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Table));
+        tables.sort((a, b) => {
+            const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+            const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+            const prefixA = a.id.replace(/\d/g, '');
+            const prefixB = b.id.replace(/\d/g, '');
+            if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+            return numA - numB;
+        });
         callback(tables);
     }, (error) => {
         console.error('Error subscribing to tables:', error);
@@ -186,6 +194,14 @@ export const subscribeTerrainBoxes = (callback: (boxes: TerrainBox[]) => void): 
     const q = query(collection(db, 'terrainBoxes'));
     return onSnapshot(q, (snapshot) => {
         const boxes = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TerrainBox));
+        boxes.sort((a, b) => {
+            const numA = parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+            const numB = parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+            const prefixA = a.id.replace(/\d/g, '');
+            const prefixB = b.id.replace(/\d/g, '');
+            if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+            return numA - numB;
+        });
         callback(boxes);
     }, (error) => {
         console.error('Error subscribing to terrain boxes:', error);
