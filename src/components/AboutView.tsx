@@ -56,7 +56,7 @@ export const AboutView: React.FC = () => {
         </div>
         <div className="rounded-lg overflow-hidden border border-neutral-700 mt-2">
           <iframe
-            src="https://www.google.com/maps/embed/v1/place?key=AIzaSyB0uwV-U5JjSwBzCV0h7iYwME8FPLVRSQE&q=Thornbury+Bowls+Club,27+Ballantyne+St,Thornbury+VIC+3071,Australia&zoom=15"
+            src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY}&q=Thornbury+Bowls+Club,27+Ballantyne+St,Thornbury+VIC+3071,Australia&zoom=15`}
             width="100%"
             height="250"
             style={{ border: 0 }}

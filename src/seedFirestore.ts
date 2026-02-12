@@ -6,19 +6,24 @@
  * This will sign in as the given user, then write all tables and terrain boxes
  * from constants.ts into Firestore. Existing docs with the same IDs will be overwritten.
  */
+import { config } from 'dotenv';
+// Load .env.local first (local dev), then fall back to .env
+config({ path: '.env.local' });
+config({ path: '.env' });
+
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { INITIAL_TABLES, INITIAL_TERRAIN_BOXES } from './constants';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAw2giJZYmLM8vG3BsD4EBFOiFhn2H3jVg",
-  authDomain: "axes-and-ales-booking-site.firebaseapp.com",
-  projectId: "axes-and-ales-booking-site",
-  storageBucket: "axes-and-ales-booking-site.firebasestorage.app",
-  messagingSenderId: "782018808364",
-  appId: "1:782018808364:web:14dd94577fee6647531f89",
-  measurementId: "G-TJ97F573Q5"
+  apiKey: process.env.VITE_FIREBASE_API_KEY!,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.VITE_FIREBASE_APP_ID!,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID!,
 };
 
 const app = initializeApp(firebaseConfig);
