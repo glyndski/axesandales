@@ -47,6 +47,12 @@ export const getUpcomingTuesdays = (): string[] => {
   // Gross but ensures we get the correct local date regardless of timezone. Always use UTC+
   let local = new Date();
   let d = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+
+  // hacky workaround - we want to open up the new website from march 2026
+  if (d < new Date('2026-03-01')) {
+    d = new Date(Date.UTC(2026, 2, 3)); // March 3, 2026 is the first Tuesday after March 1. Month is 0-indexed
+  }
+
   while (d.getDay() !== 2) {
     d.setDate(d.getDate() + 1);
   }  
@@ -67,7 +73,7 @@ export const getSelectableDates = (specialEventDates: string[], allBookings: Boo
     const today = new Date().toISOString().split('T')[0];
 
     return combinedDates
-      .filter(date => date >= today || allBookings.some(b => b.date === date))
+      .filter(date => date >= today)
       .map(date => ({
         value: date,
         isCancelled: cancelledDates.includes(date)

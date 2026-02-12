@@ -118,6 +118,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
     return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const formatDateWithDay = (dateStr: string): string => {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const handleSetRole = async (uid: string, role: 'pending' | 'member' | 'admin') => {
     if (uid === currentUser.id) return alert("Cannot change your own role.");
     try {
@@ -236,7 +240,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                  <div className="space-y-2 mt-2 max-h-40 overflow-y-auto pr-2 bg-neutral-800 p-3 rounded-lg">
                     {specialEventDates.map(date => (
                         <div key={date} className="flex justify-between items-center bg-neutral-900 p-2 rounded">
-                            <span className="text-neutral-300">{date}</span>
+                            <span className="text-neutral-300">{formatDateWithDay(date)}</span>
                             <button onClick={() => handleRemoveSpecialDate(date)} className="text-xs text-red-400 font-bold">X</button>
                         </div>
                     ))}
@@ -254,8 +258,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2 bg-neutral-800 p-3 rounded-lg">
                     {cancelledDates.map(date => (
                         <div key={date} className="flex justify-between items-center bg-neutral-900 p-2 rounded">
-                            <span className="text-neutral-300">{date}</span>
-                            <button onClick={() => handleReopenDate(date)} className="text-xs text-green-400 font-bold">OPEN</button>
+                            <span className="text-neutral-300">{formatDateWithDay(date)}</span>
+                            <button onClick={() => handleReopenDate(date)} className="text-xs text-green-400 font-bold">REMOVE</button>
                         </div>
                     ))}
                  </div>
