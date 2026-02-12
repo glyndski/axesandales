@@ -133,13 +133,19 @@ export const AboutView: React.FC = () => {
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
           {[
-            { name: 'Viv Chandra', role: 'Founder' },
-            { name: 'Tom Clare', role: 'President' },
-            { name: 'Glyn Dalton', role: 'Vice President' },
-            { name: 'Jason Berman', role: 'Treasurer' },
-            { name: 'Rob Deakin', role: 'Secretary' },
-            { name: 'Daniel Nicholls', role: 'General Committee' },
-            { name: 'Tyrone McElvenny', role: 'General Committee' },
+            { name: 'Glyn', role: 'President' },
+            { name: 'Daniel', role: 'Vice President' },
+            { name: 'Jason/Dutch Law', role: 'Treasurer' },
+            { name: 'Tyrone', role: 'Secretary' },
+            { name: 'Jason/GCUGreyArea', role: 'General Committee' },
+            { name: 'Scoob', role: 'General Committee' },
+            { name: 'Stew', role: 'General Committee' },
+            { name: 'Rob/Fodzilla', role: 'General Committee' },
+            { name: 'Rob Deakin', role: 'General Committee' },
+            { name: 'Enrique/Soulstress', role: 'General Committee' },
+            { name: 'Adam', role: 'General Committee' },
+            { name: 'Tom', role: 'IT Guy' },
+            
           ].map((member) => (
             <div key={member.name} className="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700 text-center">
               <div className="w-10 h-10 rounded-full bg-amber-600/20 border border-amber-700/50 flex items-center justify-center mx-auto mb-2 text-amber-400 font-bold text-sm">
