@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { Layout } from './components/Layout';
 import { BookingModal } from './components/BookingModal';
 import { LoginModal } from './components/LoginModal';
@@ -88,6 +88,21 @@ useEffect(() => {
 const [popover, setPopover] = useState<{ booking?: Booking; terrainBox?: TerrainBox; type: 'table' | 'terrain'; rect: DOMRect } | null>(null);
 const popoverRef = useRef<HTMLDivElement>(null);
 const popoverTimeout = useRef<ReturnType<typeof setTimeout>>();
+const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+
+// Reposition popover after render to flip above if it would overflow
+useLayoutEffect(() => {
+  if (!popover || !popoverRef.current) return;
+  const el = popoverRef.current;
+  const popoverHeight = el.offsetHeight;
+  const spaceBelow = window.innerHeight - popover.rect.bottom - 8;
+  const fitsBelow = spaceBelow >= popoverHeight;
+  const top = fitsBelow
+    ? popover.rect.bottom + 8
+    : Math.max(8, popover.rect.top - popoverHeight - 8);
+  const left = Math.min(popover.rect.left, window.innerWidth - 300);
+  setPopoverStyle({ top, left });
+}, [popover]);
 
 const showPopover = useCallback((booking: Booking, type: 'table' | 'terrain', el: HTMLElement) => {
   clearTimeout(popoverTimeout.current);
@@ -418,10 +433,7 @@ allBookings={allBookings}
   <div
     ref={popoverRef}
     className="fixed z-50 bg-neutral-800 border border-neutral-600 rounded-xl shadow-2xl shadow-black/50 min-w-[260px] max-w-[340px] animate-fade-in overflow-hidden"
-    style={{
-      top: popover.rect.bottom + 8,
-      left: Math.min(popover.rect.left, window.innerWidth - 300),
-    }}
+    style={popoverStyle}
     onMouseEnter={keepPopover}
     onMouseLeave={hidePopover}
   >
