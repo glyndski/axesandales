@@ -16,6 +16,15 @@ import { Booking, User, Table, TableSize, TerrainBox, TerrainCategory } from './
 
 type PageKey = 'home' | 'about' | 'membership' | 'layout' | 'stats' | 'profile' | 'admin';
 
+const DEV_USER: User = {
+  id: 'dev-local',
+  email: 'dev@local',
+  name: 'Dev User',
+  isMember: true,
+  isAdmin: true,
+};
+const isDev = import.meta.env.DEV;
+
 const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, ''); // e.g. "/axesandales"
 
 const PATH_TO_PAGE: Record<string, PageKey> = {
@@ -317,7 +326,7 @@ className="bg-neutral-900 border border-neutral-600 rounded-lg px-4 py-2 text-wh
 ))}
 </select>
 </div>
-{user && user.isMember && (
+{(user && user.isMember || isDev) && (
 <button onClick={openNewBooking} className="w-full md:w-auto bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-amber-900/40 transform transition hover:-translate-y-0.5">
 + New Booking
 </button>
@@ -432,7 +441,7 @@ return (
 {currentPage === 'layout' && <ClubLayoutView />}
 {currentPage === 'stats' && <StatsView />}
     {currentPage === 'profile' && user && <ProfileView user={user} />}
-{currentPage === 'admin' && user?.isAdmin && (
+{currentPage === 'admin' && (user?.isAdmin || isDev) && (
 <AdminView
 tables={tables}
 terrainBoxes={terrainBoxes}
@@ -444,17 +453,17 @@ onTerrainChange={handleTerrainUpdate}
 onUsersChange={refreshUsers}
 onCancelledDatesChange={handleCancelledDatesUpdate}
 onSpecialEventDatesChange={handleSpecialEventDatesUpdate}
-currentUser={user}
+currentUser={user || DEV_USER}
 gameSystems={gameSystems}
 />
 )}
 </Layout>
-{user && (
+{(user || isDev) && (
 <BookingModal
 isOpen={isBookingModalOpen}
 onClose={() => setIsBookingModalOpen(false)}
 onSave={handleBookingSave}
-user={user}
+user={user || DEV_USER}
 editingBooking={editingBooking}
 tables={tables}
 terrainBoxes={terrainBoxes}
