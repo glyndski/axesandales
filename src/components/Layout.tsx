@@ -70,7 +70,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <NavLink to="about">About</NavLink>
             <NavLink to="membership">Membership</NavLink>
             <NavLink to="layout">Club Layout</NavLink>
-            {(user?.isAdmin || isDev) && <NavLink to="stats">Stats</NavLink>}
+            <NavLink to="stats">Stats</NavLink>
             {user && <NavLink to="profile">Profile</NavLink>}
             {(user?.isAdmin || isDev) && <NavLink to="admin">Admin</NavLink>}
           </nav>
@@ -137,7 +137,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <NavLink to="about">About</NavLink>
             <NavLink to="membership">Membership</NavLink>
             <NavLink to="layout">Club Layout</NavLink>
-            {(user?.isAdmin || isDev) && <NavLink to="stats">Stats</NavLink>}
+            <NavLink to="stats">Stats</NavLink>
             {user && <NavLink to="profile">Profile</NavLink>}
             {(user?.isAdmin || isDev) && <NavLink to="admin">Admin</NavLink>}
 
