@@ -15,13 +15,12 @@ interface BookingModalProps {
   initialDate: string;
   allBookings: Booking[];
   gameSystems: string[];
-  onNewGameSystem: (name: string) => void;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ 
     isOpen, onClose, onSave, user, editingBooking, tables, 
     terrainBoxes, cancelledDates, bookableDates, initialDate, allBookings,
-    gameSystems, onNewGameSystem 
+    gameSystems 
 }) => {
   const [date, setDate] = useState(editingBooking?.date || initialDate || bookableDates[0]);
   const [selectedTableId, setSelectedTableId] = useState<string>('');
@@ -137,7 +136,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         value={gameSystem}
                                         onChange={setGameSystem}
                                         gameSystems={gameSystems}
-                                        onNewSystem={(name) => { setGameSystem(name); onNewGameSystem(name); }}
                                       />
                                     </div>
                                     <div className="flex items-center gap-3">

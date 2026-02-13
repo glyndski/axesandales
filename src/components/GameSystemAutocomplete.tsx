@@ -12,7 +12,6 @@ export const GameSystemAutocomplete: React.FC<GameSystemAutocompleteProps> = ({
   value,
   onChange,
   gameSystems,
-  onNewSystem,
   placeholder = 'e.g. Warhammer 40k',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -56,9 +55,6 @@ export const GameSystemAutocomplete: React.FC<GameSystemAutocompleteProps> = ({
   const handleBlur = () => {
     // Small delay to allow click events on dropdown items to fire first
     setTimeout(() => {
-      if (value.trim() && !exactMatch && onNewSystem) {
-        onNewSystem(value.trim());
-      }
       setIsOpen(false);
     }, 150);
   };
@@ -86,11 +82,9 @@ export const GameSystemAutocomplete: React.FC<GameSystemAutocompleteProps> = ({
         if (highlightIndex >= 0 && highlightIndex < filtered.length) {
           selectValue(filtered[highlightIndex]);
         } else if (highlightIndex === filtered.length && value.trim() && !exactMatch) {
-          // "Create new" option
-          if (onNewSystem) onNewSystem(value.trim());
+          // "Create new" option — just close the dropdown, value is already set
           setIsOpen(false);
-        } else if (value.trim() && !exactMatch && onNewSystem) {
-          onNewSystem(value.trim());
+        } else if (value.trim()) {
           setIsOpen(false);
         }
         break;
@@ -144,8 +138,7 @@ export const GameSystemAutocomplete: React.FC<GameSystemAutocompleteProps> = ({
             <li
               onMouseDown={(e) => {
                 e.preventDefault();
-                if (onNewSystem) onNewSystem(value.trim());
-                setIsOpen(false);
+                selectValue(value.trim());
               }}
               onMouseEnter={() => setHighlightIndex(filtered.length)}
               className={`px-3 py-2 text-sm cursor-pointer border-t border-neutral-700 transition-colors ${

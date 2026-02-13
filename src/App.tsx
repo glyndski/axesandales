@@ -472,7 +472,6 @@ bookableDates={bookableDates}
 initialDate={selectedDate}
 allBookings={allBookingsWithPainting}
 gameSystems={gameSystems}
-onNewGameSystem={(name) => firebaseService.addGameSystem(name)}
 />
 )}
 <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
