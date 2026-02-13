@@ -102,6 +102,24 @@ export const changePassword = async (newPassword: string) => {
     throw new Error("No authenticated user found.");
 };
 
+// Update display name (user profile + all their bookings)
+export const updateDisplayName = async (uid: string, newName: string): Promise<void> => {
+    const batch = writeBatch(db);
+
+    // Update user profile
+    batch.update(doc(db, 'users', uid), { name: newName });
+
+    // Update memberName on all bookings belonging to this user
+    const bookingsSnap = await getDocs(collection(db, 'bookings'));
+    bookingsSnap.docs.forEach(d => {
+        if (d.data().memberId === uid) {
+            batch.update(doc(db, 'bookings', d.id), { memberName: newName });
+        }
+    });
+
+    await batch.commit();
+};
+
 // --- ADMIN FUNCTIONS ---
 
 export const getAllUsers = async (): Promise<User[]> => {

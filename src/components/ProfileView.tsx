@@ -1,16 +1,41 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { changePassword } from '../services/firebaseService';
+import { changePassword, updateDisplayName } from '../services/firebaseService';
 
 interface ProfileViewProps {
   user: User;
+  onNameChange: (newName: string) => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ user, onNameChange }) => {
+  const [displayName, setDisplayName] = useState(user.name);
+  const [nameError, setNameError] = useState('');
+  const [nameSuccess, setNameSuccess] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const handleNameChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = displayName.trim();
+    if (!trimmed) return setNameError('Display name cannot be empty.');
+    if (trimmed === user.name) return setNameError('Name is unchanged.');
+    setNameSaving(true);
+    setNameError('');
+    setNameSuccess('');
+    try {
+      await updateDisplayName(user.id, trimmed);
+      onNameChange(trimmed);
+      setNameSuccess('Display name updated!');
+    } catch (err: any) {
+      setNameError('Failed to update display name.');
+      console.error(err);
+    } finally {
+      setNameSaving(false);
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +59,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
       <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-xl">
         <h2 className="text-2xl font-bold text-amber-500 mb-4">My Profile</h2>
         <div className="space-y-3 bg-neutral-900/50 p-4 rounded-lg border border-neutral-700">
-          <div className="flex justify-between items-center"><span className="text-neutral-400">Display Name:</span><span className="font-medium text-white">{user.name}</span></div>
+          <form onSubmit={handleNameChange} className="flex justify-between items-center gap-3">
+            <span className="text-neutral-400 shrink-0">Display Name:</span>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <input type="text" value={displayName} onChange={e => { setDisplayName(e.target.value); setNameSuccess(''); setNameError(''); }} className="bg-neutral-800 border border-neutral-600 rounded px-3 py-1 text-white text-sm w-48" />
+              <button type="submit" disabled={nameSaving || displayName.trim() === user.name} className="text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded font-medium transition-colors">{nameSaving ? 'Saving...' : 'Save'}</button>
+            </div>
+          </form>
+          {nameError && <p className="text-sm text-red-400">{nameError}</p>}
+          {nameSuccess && <p className="text-sm text-green-400">{nameSuccess}</p>}
           <div className="flex justify-between items-center"><span className="text-neutral-400">Email:</span><span className="font-medium text-white">{user.email}</span></div>
           <div className="flex justify-between items-center"><span className="text-neutral-400">Membership Status:</span>
             {user.isAdmin
