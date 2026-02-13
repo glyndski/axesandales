@@ -440,7 +440,7 @@ return (
 {currentPage === 'membership' && <MembershipView />}
 {currentPage === 'layout' && <ClubLayoutView />}
 {currentPage === 'stats' && <StatsView />}
-    {currentPage === 'profile' && user && <ProfileView user={user} />}
+    {currentPage === 'profile' && user && <ProfileView user={user} onNameChange={(newName) => setUser(prev => prev ? { ...prev, name: newName } : prev)} />}
 {currentPage === 'admin' && (user?.isAdmin || isDev) && (
 <AdminView
 tables={tables}
