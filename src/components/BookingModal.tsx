@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Booking, TerrainCategory, User, Table, TerrainBox } from '../types';
 import { GameSystemAutocomplete } from './GameSystemAutocomplete';
+import { generateUUID } from '../utils';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     const newBooking: Booking = {
-        id: editingBooking ? editingBooking.id : crypto.randomUUID(),
+        id: editingBooking ? editingBooking.id : generateUUID(),
         date,
         tableId: selectedTableId,
         terrainBoxId: selectedTerrainId || null,
