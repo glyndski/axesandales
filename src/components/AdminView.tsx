@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Table, TerrainBox, TableSize, TerrainCategory, User, Booking } from '../types';
 import * as firebaseService from '../services/firebaseService';
+import { generateUUID } from '../utils';
 
 interface AdminViewProps {
   tables: Table[];
@@ -84,7 +85,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if ('id' in editingTable) { 
       onTablesChange(tables.map(t => t.id === editingTable.id ? editingTable as Table : t));
     } else { 
-      const newTable = { ...editingTable, id: `custom-${crypto.randomUUID()}` } as Table;
+      const newTable = { ...editingTable, id: `custom-${generateUUID()}` } as Table;
       onTablesChange([...tables, newTable]);
     }
     setEditingTable(null);
@@ -99,7 +100,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if ('id' in editingTerrain) {
         onTerrainChange(terrainBoxes.map(t => t.id === editingTerrain.id ? editingTerrain as TerrainBox : t));
     } else {
-        const newTerrain = { ...editingTerrain, id: `custom-${crypto.randomUUID()}` } as TerrainBox;
+        const newTerrain = { ...editingTerrain, id: `custom-${generateUUID()}` } as TerrainBox;
         onTerrainChange([...terrainBoxes, newTerrain]);
     }
     setEditingTerrain(null);
