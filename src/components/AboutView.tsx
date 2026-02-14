@@ -23,10 +23,29 @@ export const AboutView: React.FC = () => {
           We are a social club first. Our main goal is to provide a safe, friendly and inclusive environment. We're all about rolling dice, telling stories, and enjoying the hobby that we all love. 
         </p>
         <p className="text-neutral-300 leading-relaxed">
-          The club has a massive collection of terrain organized into themed sets. It's never been so easy to set up a table and even easier to pack away and store.
+          The club has a massive collection of tables and terrain for a wide range of games and settings, as well as a dedicated painting table that anyone is welcome use on the night!
         </p>
         <p className="text-neutral-300 leading-relaxed">
-          So whether you’re here for a narrative campaign or a casual board game, Axes & Ales is a welcoming space to unwind, grab a drink, and play.
+          So whether you’re here for a narrative campaign or practicing for the next tournament, Axes & Ales is a welcoming space to unwind, grab a drink, and play.
+        </p>
+      </div>
+      {/* Our Community */}
+      <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-xl space-y-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <span className="w-2 h-8 bg-amber-600 rounded-full inline-block"></span>
+          Our Community
+        </h2>
+        <p className="text-neutral-300 leading-relaxed">
+          Axes & Ales is a <span className="text-white font-medium">registered not-for-profit incorporated association</span> — the Northern Suburbs Gamers Club Inc. We're run entirely by volunteers and nobody makes a cent from the club.
+        </p>
+        <p className="text-neutral-300 leading-relaxed">
+          Every dollar that comes in goes straight back into the club — whether that's new terrain, gaming mats, venue costs, or community events. Our volunteer committee keeps things running in their spare time purely for the love of the hobby.
+        </p>
+        <p className="text-neutral-300 leading-relaxed">
+          <span className="text-white font-medium">Everyone is welcome to come along and play for free</span> — no membership required, no pressure. Just turn up on a Tuesday night and join in. Memberships exist simply to help cover our running costs, maintain our terrain and tables, and to help support running events.
+        </p>
+        <p className="text-neutral-300 leading-relaxed">
+          Members get the perk of being able to book tables in advance. But if you just want to turn up and play, that's completely fine too! If you're new, our committee and regulars are always happy to have a chat, introduce you to the club, and help you find a game.
         </p>
       </div>
       {/* Co-ordinate a Game */}
