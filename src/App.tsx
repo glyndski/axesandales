@@ -431,12 +431,13 @@ Table Status
                                 {boxesInCategory.map(box => {
                                     const isBooked = bookedTerrainIds.has(box.id);
                                     const booking = isBooked ? bookingsForSelectedDate.find(b => b.terrainBoxId === box.id) : undefined;
+                                    const isMyTerrain = user && booking?.memberId === user.id;
                                     return (
                                         <div key={box.id}
-                                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${isBooked ? 'bg-red-900/20 border-red-900/40 text-red-300' : 'bg-neutral-900 border-neutral-600 text-neutral-300 hover:border-neutral-400'}`}
+                                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${isBooked ? (isMyTerrain ? 'bg-amber-900/20 border-amber-600/50 text-amber-300' : 'bg-red-900/20 border-red-900/40 text-red-300') : 'bg-neutral-900 border-neutral-600 text-neutral-300 hover:border-neutral-400'}`}
                                             onMouseEnter={(e) => showTerrainPopover(box, booking, e.currentTarget)}
                                             onMouseLeave={hidePopover}>
-                                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${isBooked ? 'bg-red-400' : 'bg-green-400'}`}></span>
+                                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${isBooked ? (isMyTerrain ? 'bg-amber-400' : 'bg-red-400') : 'bg-green-400'}`}></span>
                                             {box.name}
                                         </div>
                                     );
