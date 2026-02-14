@@ -9,6 +9,20 @@ export const MembershipView: React.FC = () => {
         <p className="text-neutral-400 text-sm">Northern Suburbs Gamers Club Incorporated</p>
       </div>
 
+      {/* Free to Play */}
+      <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-xl space-y-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <span className="w-2 h-8 bg-amber-600 rounded-full inline-block"></span>
+          Membership Is Optional
+        </h2>
+        <p className="text-neutral-300 leading-relaxed">
+          Axes & Ales is <span className="text-white font-medium">free to attend</span>. You're welcome to come down any Tuesday night, grab a seat, and join in a game — no membership needed and no entry fee. We want everyone to feel welcome, whether it's your first visit or your fiftieth.
+        </p>
+        <p className="text-neutral-300 leading-relaxed">
+          As a not-for-profit club, memberships simply help us cover venue hire, terrain, and running costs. In return, members can <span className="text-white font-medium">book tables in advance</span> through this site, so you can lock in your game for the night. But if you'd rather just turn up and play, that's completely fine too.
+        </p>
+      </div>
+
       {/* Membership Info */}
       <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-xl space-y-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
