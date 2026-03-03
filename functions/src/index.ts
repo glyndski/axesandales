@@ -1,4 +1,4 @@
-import {setGlobalOptions} from "firebase-functions";
+﻿import {setGlobalOptions} from "firebase-functions";
 import {
   onDocumentCreated,
   onDocumentUpdated,
@@ -116,8 +116,9 @@ function buildConfirmationEmail(
       Game: ${booking.gameSystem}<br>
       Players: ${booking.playerCount}
     </p>
-    <p>To change or cancel, visit the
-    Axes &amp; Ales booking site.</p>
+    <p>To change or cancel, visit
+    <a href="https://www.axesandales.club/booking">
+    Axes &amp; Ales</a>.</p>
   `;
 }
 
@@ -143,8 +144,9 @@ function buildModificationEmail(
       Game: ${booking.gameSystem}<br>
       Players: ${booking.playerCount}
     </p>
-    <p>To make further changes, visit the
-    Axes &amp; Ales booking site.</p>
+    <p>To make further changes, visit
+    <a href="https://www.axesandales.club/booking">
+    Axes &amp; Ales</a>.</p>
   `;
 }
 
@@ -169,8 +171,9 @@ function buildCancellationEmail(
       Terrain: ${terrainName || "None"}<br>
       Game: ${booking.gameSystem}
     </p>
-    <p>You can make a new booking any time on the
-    Axes &amp; Ales booking site.</p>
+    <p>You can make a new booking any time on
+    <a href="https://www.axesandales.club/booking">
+    Axes &amp; Ales</a>.</p>
   `;
 }
 
@@ -222,7 +225,7 @@ export const onBookingCreated = onDocumentCreated(
       booking, tableName, terrainName,
     );
     const subject =
-      `Booking Confirmed — ${formatDate(booking.date)}`;
+      `Booking Confirmed - ${formatDate(booking.date)}`;
     await queueEmail(email, subject, html);
 
     const id = event.params.bookingId;
@@ -267,7 +270,7 @@ export const onBookingUpdated = onDocumentUpdated(
         after, tableName, terrainName,
       );
       const subject =
-        `Booking Cancelled — ${formatDate(after.date)}`;
+        `Booking Cancelled - ${formatDate(after.date)}`;
       await queueEmail(email, subject, html);
       logger.info(
         `Cancellation email queued for ${email} (${id})`,
@@ -290,7 +293,7 @@ export const onBookingUpdated = onDocumentUpdated(
         after, tableName, terrainName,
       );
       const subject =
-        `Booking Updated — ${formatDate(after.date)}`;
+        `Booking Updated - ${formatDate(after.date)}`;
       await queueEmail(email, subject, html);
       logger.info(
         `Modification email queued for ${email} (${id})`,
