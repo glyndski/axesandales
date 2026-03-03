@@ -385,7 +385,7 @@ Table Status
             <div className="flex flex-wrap gap-2">
                 {tablesInGroup.map(table => {
                     const booking = bookingsForSelectedDate.find(b => b.tableId === table.id);
-                    const isMyBooking = user && booking?.memberId === user.id;
+                    const isMyBooking = user && (booking?.memberId === user.id || booking?.taggedPlayerIds?.includes(user.id));
                     return (
                         <div key={table.id}
                             className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${booking ? 'cursor-pointer' : 'cursor-default'} ${booking ? (isMyBooking ? 'bg-amber-900/20 border-amber-600/50 text-amber-300' : 'bg-red-900/20 border-red-900/40 text-red-300') : 'bg-neutral-900 border-neutral-600 text-neutral-300'}`}
@@ -433,7 +433,7 @@ Table Status
                                 {boxesInCategory.map(box => {
                                     const isBooked = bookedTerrainIds.has(box.id);
                                     const booking = isBooked ? bookingsForSelectedDate.find(b => b.terrainBoxId === box.id) : undefined;
-                                    const isMyTerrain = user && booking?.memberId === user.id;
+                                    const isMyTerrain = user && (booking?.memberId === user.id || booking?.taggedPlayerIds?.includes(user.id));
                                     return (
                                         <div key={box.id}
                                             className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${isBooked ? (isMyTerrain ? 'bg-amber-900/20 border-amber-600/50 text-amber-300' : 'bg-red-900/20 border-red-900/40 text-red-300') : 'bg-neutral-900 border-neutral-600 text-neutral-300 hover:border-neutral-400'}`}
