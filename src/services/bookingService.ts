@@ -116,3 +116,27 @@ export function sanitizeBookingForFirestore(booking: Booking): Booking {
     ...(booking.cancelledBy !== undefined ? { cancelledBy: booking.cancelledBy } : {}),
   };
 }
+
+/**
+ * Check whether a user is allowed to cancel/edit a booking.
+ */
+export function canModifyBooking(booking: Booking, user: User | null): boolean {
+  if (!user) return false;
+  if (user.isAdmin) return true;
+  return booking.memberId === user.id;
+}
+
+/**
+ * Build the cancellation update payload (mirrors firebaseService.cancelBooking).
+ */
+export function buildCancellationUpdate(cancelledByUserId: string): {
+  status: 'cancelled';
+  cancelledAt: number;
+  cancelledBy: string;
+} {
+  return {
+    status: 'cancelled',
+    cancelledAt: Date.now(),
+    cancelledBy: cancelledByUserId,
+  };
+}

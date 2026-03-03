@@ -3,6 +3,8 @@ import {
   validateBooking,
   createBookingFromInput,
   sanitizeBookingForFirestore,
+  canModifyBooking,
+  buildCancellationUpdate,
   BookingInput,
   BookingValidationContext,
 } from '../services/bookingService';
@@ -254,5 +256,115 @@ describe('sanitizeBookingForFirestore', () => {
     const sanitized = sanitizeBookingForFirestore(booking);
     expect('cancelledAt' in sanitized).toBe(false);
     expect('cancelledBy' in sanitized).toBe(false);
+  });
+});
+
+// ─── canModifyBooking ───────────────────────────────────
+
+describe('canModifyBooking', () => {
+  it('allows the booking owner to modify', () => {
+    const booking = makeBooking({ memberId: 'user-1' });
+    const owner = makeUser({ id: 'user-1' });
+    expect(canModifyBooking(booking, owner)).toBe(true);
+  });
+
+  it('allows an admin to modify any booking', () => {
+    const booking = makeBooking({ memberId: 'user-2' });
+    const admin = makeUser({ id: 'admin-1', isAdmin: true });
+    expect(canModifyBooking(booking, admin)).toBe(true);
+  });
+
+  it('denies a different non-admin user', () => {
+    const booking = makeBooking({ memberId: 'user-2' });
+    const other = makeUser({ id: 'user-3', isAdmin: false });
+    expect(canModifyBooking(booking, other)).toBe(false);
+  });
+
+  it('denies when user is null (logged out)', () => {
+    const booking = makeBooking();
+    expect(canModifyBooking(booking, null)).toBe(false);
+  });
+});
+
+// ─── buildCancellationUpdate ────────────────────────────
+
+describe('buildCancellationUpdate', () => {
+  it('returns status cancelled with timestamp and userId', () => {
+    const before = Date.now();
+    const update = buildCancellationUpdate('user-1');
+    const after = Date.now();
+
+    expect(update.status).toBe('cancelled');
+    expect(update.cancelledBy).toBe('user-1');
+    expect(update.cancelledAt).toBeGreaterThanOrEqual(before);
+    expect(update.cancelledAt).toBeLessThanOrEqual(after);
+  });
+
+  it('contains no undefined values', () => {
+    const update = buildCancellationUpdate('admin-1');
+    for (const [key, value] of Object.entries(update)) {
+      expect(value, `field '${key}' should not be undefined`).not.toBeUndefined();
+    }
+  });
+});
+
+// ─── Editing-specific scenarios ─────────────────────────
+
+describe('booking edits', () => {
+  it('allows changing game system on an existing booking', () => {
+    const existing = makeBooking({ id: 'b1', tableId: 'L1', date: '2026-03-10', gameSystem: 'Warhammer 40k' });
+    const input = makeInput({ tableId: 'L1', date: '2026-03-10', gameSystem: 'Age of Sigmar' });
+    const result = validateBooking(input, makeContext({ existingBookings: [existing], editingBookingId: 'b1' }));
+    expect(result.valid).toBe(true);
+
+    const updated = createBookingFromInput(input, makeUser(), existing);
+    expect(updated.id).toBe('b1');
+    expect(updated.gameSystem).toBe('Age of Sigmar');
+  });
+
+  it('allows moving to a different table when editing', () => {
+    const existing = makeBooking({ id: 'b1', tableId: 'L1', date: '2026-03-10' });
+    const input = makeInput({ tableId: 'L2', date: '2026-03-10' });
+    const result = validateBooking(input, makeContext({ existingBookings: [existing], editingBookingId: 'b1' }));
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects moving to a table already taken by someone else', () => {
+    const myBooking = makeBooking({ id: 'b1', tableId: 'L1', date: '2026-03-10', memberId: 'user-1' });
+    const otherBooking = makeBooking({ id: 'b2', tableId: 'L2', date: '2026-03-10', memberId: 'user-2' });
+    const input = makeInput({ tableId: 'L2', date: '2026-03-10' });
+    const result = validateBooking(input, makeContext({ existingBookings: [myBooking, otherBooking], editingBookingId: 'b1' }));
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/already booked/i);
+  });
+
+  it('allows changing terrain when editing', () => {
+    const existing = makeBooking({ id: 'b1', tableId: 'L1', terrainBoxId: 'terrain-1', date: '2026-03-10' });
+    const input = makeInput({ tableId: 'L1', terrainBoxId: 'terrain-2', date: '2026-03-10' });
+    const result = validateBooking(input, makeContext({ existingBookings: [existing], editingBookingId: 'b1' }));
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects changing to terrain already taken by someone else', () => {
+    const myBooking = makeBooking({ id: 'b1', tableId: 'L1', terrainBoxId: 'terrain-1', date: '2026-03-10' });
+    const otherBooking = makeBooking({ id: 'b2', tableId: 'L2', terrainBoxId: 'terrain-2', date: '2026-03-10' });
+    const input = makeInput({ tableId: 'L1', terrainBoxId: 'terrain-2', date: '2026-03-10' });
+    const result = validateBooking(input, makeContext({ existingBookings: [myBooking, otherBooking], editingBookingId: 'b1' }));
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/terrain.*reserved/i);
+  });
+
+  it('preserves the original status when editing', () => {
+    const existing = makeBooking({ id: 'b1', status: 'active' });
+    const updated = createBookingFromInput(makeInput(), makeUser(), existing);
+    expect(updated.status).toBe('active');
+  });
+
+  it('preserves player count and tagged players when editing', () => {
+    const existing = makeBooking({ id: 'b1' });
+    const input = makeInput({ playerCount: 5, taggedPlayerIds: ['user-3', 'user-4'] });
+    const updated = createBookingFromInput(input, makeUser(), existing);
+    expect(updated.playerCount).toBe(5);
+    expect(updated.taggedPlayerIds).toEqual(['user-3', 'user-4']);
   });
 });
