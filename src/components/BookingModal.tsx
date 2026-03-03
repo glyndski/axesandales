@@ -29,6 +29,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedTerrainId, setSelectedTerrainId] = useState<string>('');
   const [gameSystem, setGameSystem] = useState('');
   const [playerCount, setPlayerCount] = useState(2);
+  const [playerCountManuallySet, setPlayerCountManuallySet] = useState(false);
   const [error, setError] = useState('');
   const [taggedPlayerIds, setTaggedPlayerIds] = useState<string[]>([]);
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
@@ -47,12 +48,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             setSelectedTerrainId(editingBooking.terrainBoxId || '');
             setGameSystem(editingBooking.gameSystem);
             setPlayerCount(editingBooking.playerCount);
+            setPlayerCountManuallySet(true);
             setTaggedPlayerIds(editingBooking.taggedPlayerIds || []);
         } else {
             setGameSystem('');
             setSelectedTableId('');
             setSelectedTerrainId('');
             setPlayerCount(2);
+            setPlayerCountManuallySet(false);
             setTaggedPlayerIds([]);
             setDate(bookableDates.includes(initialDate) ? initialDate : bookableDates[0]);
         }
@@ -164,7 +167,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-neutral-400">Players:</span>
-                                        <input type="number" min="1" max="10" value={playerCount} onChange={(e) => setPlayerCount(parseInt(e.target.value))} className="w-20 bg-neutral-800 border border-neutral-600 rounded px-2 py-1 text-white focus:ring-1 focus:ring-amber-500 focus:outline-none text-sm" />
+                                        <input type="number" min="1" max="10" value={playerCount} onChange={(e) => { setPlayerCount(parseInt(e.target.value)); setPlayerCountManuallySet(true); }} className="w-20 bg-neutral-800 border border-neutral-600 rounded px-2 py-1 text-white focus:ring-1 focus:ring-amber-500 focus:outline-none text-sm" />
                                     </div>
                                     <div className="mt-3" ref={playerSearchRef}>
                                         <label className="block text-xs text-neutral-400 mb-1">Tag Players (Optional)</label>
@@ -186,7 +189,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                 return filtered.length > 0 ? (
                                                     <div className="absolute z-50 w-full mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-xl max-h-36 overflow-y-auto">
                                                         {filtered.map(u => (
-                                                            <button key={u.id} type="button" onClick={() => { setTaggedPlayerIds(prev => [...prev, u.id]); setPlayerSearchQuery(''); setIsPlayerDropdownOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700 transition-colors">
+                                                            <button key={u.id} type="button" onClick={() => { setTaggedPlayerIds(prev => { const next = [...prev, u.id]; if (!playerCountManuallySet) setPlayerCount(next.length + 1); return next; }); setPlayerSearchQuery(''); setIsPlayerDropdownOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700 transition-colors">
                                                                 <span className="truncate">{u.name}</span>
                                                             </button>
                                                         ))}
@@ -201,7 +204,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                     return (
                                                         <span key={id} className="inline-flex items-center gap-1 bg-amber-900/30 border border-amber-700/50 text-amber-300 text-xs px-2 py-1 rounded-full">
                                                             {taggedUser?.name || 'Unknown'}
-                                                            <button type="button" onClick={() => setTaggedPlayerIds(prev => prev.filter(p => p !== id))} className="hover:text-white transition-colors">
+                                                            <button type="button" onClick={() => setTaggedPlayerIds(prev => { const next = prev.filter(p => p !== id); if (!playerCountManuallySet) setPlayerCount(next.length + 1); return next; })} className="hover:text-white transition-colors">
                                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                             </button>
                                                         </span>
