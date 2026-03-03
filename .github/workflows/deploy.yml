@@ -14,7 +14,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rules-changed: ${{ steps.filter.outputs.rules }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rules:
+              - 'firestore.rules'
+
+  deploy-firestore-rules:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rules-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Firestore rules
+        uses: w9jds/firebase-action@v14.3.0
+        with:
+          args: deploy --only firestore:rules
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+
   build-and-deploy:
+    needs: [detect-changes, deploy-firestore-rules]
+    if: always() && (needs.deploy-firestore-rules.result == 'success' || needs.deploy-firestore-rules.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
