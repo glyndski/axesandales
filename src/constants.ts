@@ -47,7 +47,7 @@ export const INITIAL_TERRAIN_BOXES: TerrainBox[] = [
 export const getUpcomingTuesdays = (): string[] => {
   const dates: string[] = [];
   // Gross but ensures we get the correct local date regardless of timezone. Always use UTC+
-  let local = new Date();
+  const local = new Date();
   let d = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
 
   // hacky workaround - we want to open up the new website from march 2026
@@ -63,6 +63,16 @@ export const getUpcomingTuesdays = (): string[] => {
     d.setDate(d.getDate() + 7);
   }
   return dates;
+};
+
+/**
+ * Get dates available for new bookings: upcoming Tuesdays + special event dates,
+ * excluding cancelled dates and past dates.
+ */
+export const getBookableDates = (specialEventDates: string[], cancelledDates: string[]): string[] => {
+    return [...new Set([...getUpcomingTuesdays(), ...specialEventDates])]
+      .filter(d => !cancelledDates.includes(d) && d >= new Date().toISOString().split('T')[0])
+      .sort();
 };
 
 export const getSelectableDates = (specialEventDates: string[], allBookings: Booking[], cancelledDates: string[]): {value: string, isCancelled: boolean}[] => {

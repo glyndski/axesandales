@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Booking, TerrainCategory, User, Table, TerrainBox } from '../types';
 import { GameSystemAutocomplete } from './GameSystemAutocomplete';
-import { generateUUID } from '../utils';
+import { validateBooking, createBookingFromInput } from '../services/bookingService';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -87,7 +87,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     setUnavailableTables(takenTables);
     setUnavailableTerrain(takenTerrain);
-  }, [date, editingBooking, isOpen]);
+  }, [date, editingBooking, isOpen, allBookings]);
 
   // Close player dropdown when clicking outside
   useEffect(() => {
@@ -101,32 +101,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   }, []);
 
   const handleSave = async () => {
-    if (cancelledDates.includes(date)) {
-        setError("This date has been cancelled. Bookings are not allowed.");
-        return;
-    }
-    if (!user.isMember) {
-        setError("Your membership is not active. Please contact an admin.");
-        return;
-    }
-    if (!selectedTableId || !gameSystem) {
-        setError('Please select a table and enter a game system.');
-        return;
+    const input = {
+      date,
+      tableId: selectedTableId,
+      terrainBoxId: selectedTerrainId,
+      gameSystem,
+      playerCount,
+      taggedPlayerIds,
+    };
+
+    const validation = validateBooking(input, {
+      cancelledDates,
+      user,
+      existingBookings: allBookings,
+      editingBookingId: editingBooking?.id,
+    });
+
+    if (!validation.valid) {
+      setError(validation.error!);
+      return;
     }
 
-    const newBooking: Booking = {
-        id: editingBooking ? editingBooking.id : generateUUID(),
-        date,
-        tableId: selectedTableId,
-        terrainBoxId: selectedTerrainId || null,
-        memberName: user.name,
-        memberId: user.id,
-        gameSystem,
-        playerCount,
-        taggedPlayerIds,
-        timestamp: Date.now(),
-        status: editingBooking ? editingBooking.status : 'active',
-    };
+    const newBooking = createBookingFromInput(input, user, editingBooking);
     try {
       await onSave(newBooking);
       if (editingBooking) {
