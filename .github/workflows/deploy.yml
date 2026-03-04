@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       rules-changed: ${{ steps.filter.outputs.rules }}
+      functions-changed: ${{ steps.filter.outputs.functions }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -26,6 +27,8 @@ jobs:
           filters: |
             rules:
               - 'firestore.rules'
+            functions:
+              - 'functions/**'
 
   deploy-firestore-rules:
     needs: detect-changes
@@ -41,9 +44,37 @@ jobs:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
 
+  deploy-functions:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.functions-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: functions
+      - name: Lint
+        run: npm run lint
+        working-directory: functions
+      - name: Build
+        run: npm run build
+        working-directory: functions
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@v14.3.0
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+
   build-and-deploy:
-    needs: [detect-changes, deploy-firestore-rules]
-    if: always() && (needs.deploy-firestore-rules.result == 'success' || needs.deploy-firestore-rules.result == 'skipped')
+    needs: [detect-changes, deploy-firestore-rules, deploy-functions]
+    if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
