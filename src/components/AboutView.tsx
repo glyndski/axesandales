@@ -53,7 +53,7 @@ export const AboutView: React.FC = () => {
         <p className="text-neutral-300 leading-relaxed">
           The club is a place for everyone to enjoy the hobby, 
           regardless of race, gender, sexuality, or neurotype, 
-          and we are a place for both experience players and those who are just starting out.           
+          and we are a place for both experienced players and those who are just starting out.           
         </p>
       </div>
 
